@@ -1,0 +1,31 @@
+FROM python:3
+
+# システムの依存関係を先にインストール
+RUN apt-get update && apt-get install -y \
+    cmake \
+    build-essential \
+    curl \
+    wget \
+    && rm -rf /var/lib/apt/lists/*
+
+# 作業ディレクトリの設定を先に行う
+RUN mkdir /function
+WORKDIR /function
+
+# 必要なパッケージをインストール（awslambdaricを先にインストール）
+COPY requirements.txt .
+RUN pip install --upgrade pip && \
+    pip install awslambdaric && \
+    pip install fastapi mangum
+
+# VOICEVOXのインストール
+RUN pip install https://github.com/VOICEVOX/voicevox_core/releases/download/0.15.0/voicevox_core-0.15.0+cpu-cp38-abi3-linux_x86_64.whl
+RUN binary=download-linux-x64 && \
+    curl -sSfL https://github.com/VOICEVOX/voicevox_core/releases/latest/download/${binary} -o download  && \
+    chmod +x download  && \
+    ./download -o ./
+
+COPY ./index.py /function/
+
+ENTRYPOINT [ "/usr/local/bin/python", "-m", "awslambdaric" ]
+CMD [ "index.handler" ]

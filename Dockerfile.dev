@@ -1,0 +1,27 @@
+FROM docker:20.10 as docker
+FROM node:20.14-buster-slim as node
+FROM python:3.12-bookworm
+
+RUN useradd -u 1000 developper \
+  && apt-get update -qq && apt-get install -qq --no-install-recommends \
+    curl awscli unzip wget git vim
+
+RUN groupadd -g 999 docker && usermod -aG docker developper
+
+# Docker binary copy
+COPY --from=docker /usr/local/bin/docker /usr/local/bin/
+
+COPY --from=node /usr/local/bin/node /usr/local/bin/
+COPY --from=node /usr/local/lib/node_modules/ /usr/local/lib/node_modules/
+RUN ln -s /usr/local/bin/node /usr/local/bin/nodejs \
+    && ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
+    && ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npx \
+    && chown -R developper:developper /usr/local/lib/node_modules
+
+RUN npm install -g aws-cdk
+
+COPY --chown=developper:developper . /home/developper/app
+WORKDIR /home/developper/app
+RUN mkdir -p /home/developper/.aws /home/developper/app/node_modules
+RUN chown -R developper:developper /home/developper/app /home/developper/.aws
+USER developper

@@ -1,0 +1,11 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: ./Dockerfile.dev
+    volumes:
+      - .:/home/developper/app
+      - ~/.aws/:/home/developper/.aws/
+      - /var/run/docker.sock:/var/run/docker.sock
+    tty: true
+    privileged: true
